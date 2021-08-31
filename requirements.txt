@@ -1,0 +1,5 @@
+python-lorem
+dicttoxml
+faker
+pytz
+requests
