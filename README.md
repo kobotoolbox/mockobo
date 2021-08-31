@@ -2,6 +2,8 @@
 
 Make random submissions to a KoBo form
 
+> NOT WORKING FOR GROUPED QUESTIONS YET OR MEDIA-TYPE QUESTIONS
+
 1. Setup
 
 ```
