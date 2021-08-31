@@ -23,6 +23,9 @@ from faker import Faker
 KOBO_CONF = 'kobo.json'
 
 
+faker = Faker()
+
+
 def get_config(asset_uid):
     if not os.path.exists(KOBO_CONF):
         print(f'Make sure you configure {KOBO_CONF} first.')
@@ -110,7 +113,7 @@ def get_point():
 
 
 def get_random_datetime(_type='datetime'):
-    dt = Faker().date_time_between(start_date='-30y', end_date='now')
+    dt = faker.date_time_between(start_date='-30y', end_date='now')
     dt = dt.astimezone(pytz.timezone(choice(pytz.all_timezones)))
     if _type == 'datetime':
         return format_openrosa_datetime(dt)
@@ -253,7 +256,7 @@ def main(asset_uid, count=1):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='A CLI tool for note templates.'
+        description='A CLI tool to submit random data to KoBo'
     )
     parser.add_argument('--asset-uid', '-a', type=str, help='Asset UID')
     parser.add_argument(
