@@ -32,8 +32,8 @@ def get_config(asset_uid):
         conf = json.loads(f.read())
 
     token = conf['token']
-    kc_url = conf['kc_url']
-    kf_url = get_kpi_url(kc_url)
+    kf_url = conf['kf_url']
+    kc_url = get_kc_url(kf_url)
     return {
         'data_url':f'{kf_url}/api/v2/assets/{asset_uid}/data',
         'asset_url':f'{kf_url}/api/v2/assets/{asset_uid}',
@@ -47,8 +47,8 @@ def get_config(asset_uid):
     }
 
 
-def get_kpi_url(kc_url):
-    return re.sub(r'^(https?://)[\w]+(\..*)$', r'\1kf\2', kc_url)
+def get_kc_url(kf_url):
+    return re.sub(r'^(https?://)[\w]+(\..*)$', r'\1kc\2', kf_url)
 
 
 def get_asset(asset_url, headers, params, *args, **kwargs):
@@ -137,8 +137,9 @@ def get_submission_misc(_uuid, deployment_data):
 
 def get_submission_data(asset_content):
     survey = asset_content['survey']
+    asset_choices = asset_content.get('choices', [])
     survey_choices = {}
-    for item in asset_content['choices']:
+    for item in asset_choices:
         ln = item['list_name']
         n = item['name']
         if ln not in survey_choices:
@@ -186,7 +187,7 @@ def get_submission_data(asset_content):
             res = current_time
 
         # NUMBER QUESTIONS
-        elif data_type == ['integer', 'range']:
+        elif data_type in ['integer', 'range']:
             res = randint(0, 99999)
         elif data_type == 'decimal':
             res = round(random() * randint(0, 99999), randint(1,10))
@@ -263,8 +264,6 @@ if __name__ == '__main__':
         help='Number of submissions to generate',
     )
     args = parser.parse_args()
-
-    print(args.asset_uid, args.count)
 
     main(asset_uid=args.asset_uid, count=args.count)
 
