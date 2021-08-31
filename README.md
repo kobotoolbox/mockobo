@@ -24,7 +24,7 @@ __kobo.json__
 ```json
 {
   "token": "YOUR_TOKEN",
-  "kc_url": "https://kc.kobotoolbox.org"
+  "kf_url": "https://kf.kobotoolbox.org"
 }
 ```
 
