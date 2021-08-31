@@ -168,7 +168,7 @@ def get_submission_data(asset_content):
             res = choice(choices)
         elif data_type == 'rank':
             _choices = copy(choices)
-            _choices = shuffle(_choices)
+            shuffle(_choices)
             res = ' '.join(_choices)
 
         # TEXT
