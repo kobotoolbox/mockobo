@@ -1,25 +1,25 @@
-# mksubs
+# mockobo
 
-Make random submissions to a KoBo form
+Make mock submissions to a deployed KoBo form
 
 > NOT WORKING FOR GROUPED QUESTIONS YET OR MEDIA-TYPE QUESTIONS
 
 1. Setup
 
 ```
-git clone https://github.com/joshuaberetta/mksubs
-cd mksubs
+git clone https://github.com/joshuaberetta/mockobo
+cd mockobo
 
 python3 -m venv e
 . e/bin/activate
 pip3 install -r requirements.txt
 
-chmod +x mksubs.py
+chmod +x mockobo.py
 ```
 
 2. Create config file in the root
 
-__kobo.json__
+`kobo.json`
 
 ```json
 {
@@ -31,12 +31,12 @@ __kobo.json__
 3. Create submissions
 
 ```
-./mksubs.py --asset-uid aLmmfWSAUNamKwiSTcVSix --count 42
+./mockobo.py --asset-uid aLmmfWSAUNamKwiSTcVSix --count 42
 ```
 
 Or
 
 ```
-./mksubs.py -a aLmmfWSAUNamKwiSTcVSix -c 42
+./mockobo.py -a aLmmfWSAUNamKwiSTcVSix -c 42
 ```
 
