@@ -36,7 +36,8 @@ def get_config(asset_uid):
 
     token = conf['token']
     kf_url = conf['kf_url']
-    kc_url = get_kc_url(kf_url)
+    kc_url = conf['kc_url']
+    # kc_url = get_kc_url(kf_url)
     return {
         'data_url':f'{kf_url}/api/v2/assets/{asset_uid}/data',
         'asset_url':f'{kf_url}/api/v2/assets/{asset_uid}',
@@ -50,8 +51,8 @@ def get_config(asset_uid):
     }
 
 
-def get_kc_url(kf_url):
-    return re.sub(r'^(https?://)[\w]+(\..*)$', r'\1kc\2', kf_url)
+# def get_kc_url(kf_url):
+#     return re.sub(r'^(https?://)[\w]+(\..*)$', r'\1kc\2', kf_url)
 
 
 def get_asset(asset_url, headers, params, *args, **kwargs):

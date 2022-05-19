@@ -1,4 +1,5 @@
 {
     "token": "",
-    "kf_url": "https://kf.kobotoolbox.org"
+    "kf_url": "https://kf.kobotoolbox.org",
+    "kc_url": "https://kc.kobotoolbox.org"
 }
