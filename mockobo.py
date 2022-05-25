@@ -238,15 +238,17 @@ def prepare_submission(asset):
 def main(asset_uid, count=1):
     config = get_config(asset_uid=asset_uid)
     asset = get_asset(**config)
-
+    failure = 1
     res_codes = []
     for _ in range(count):
         xml, _uuid = prepare_submission(asset)
         res = submit_data(xml, _uuid, **config)
         if res == 201:
-            print(f'{_uuid}: Success')
+            success_current = len([rc == 201 for rc in res_codes])+1
+            print(f'{_uuid}: Success # {success_current}')
         else:
-            print(f'{_uuid}: Fail')
+            print(f'{_uuid}: Fail # {failure} ({res})')
+            failure = failure + 1
         res_codes.append(res)
 
     successes = len([rc == 201 for rc in res_codes])
