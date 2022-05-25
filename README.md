@@ -24,7 +24,8 @@ chmod +x mockobo.py
 ```json
 {
   "token": "YOUR_TOKEN",
-  "kf_url": "https://kf.kobotoolbox.org"
+  "kf_url": "https://kf.kobotoolbox.org",
+  "kc_url": "https://kc.kobotoolbox.org"
 }
 ```
 
