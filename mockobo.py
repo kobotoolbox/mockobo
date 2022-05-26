@@ -36,7 +36,7 @@ def get_config(asset_uid):
 
     token = conf['token']
     kf_url = conf['kf_url']
-    kc_url = get_kc_url(kf_url)
+    kc_url = conf['kc_url']
     return {
         'data_url':f'{kf_url}/api/v2/assets/{asset_uid}/data',
         'asset_url':f'{kf_url}/api/v2/assets/{asset_uid}',
@@ -48,10 +48,6 @@ def get_config(asset_uid):
             'format': 'json'
         },
     }
-
-
-def get_kc_url(kf_url):
-    return re.sub(r'^(https?://)[\w]+(\..*)$', r'\1kc\2', kf_url)
 
 
 def get_asset(asset_url, headers, params, *args, **kwargs):
@@ -237,15 +233,17 @@ def prepare_submission(asset):
 def main(asset_uid, count=1):
     config = get_config(asset_uid=asset_uid)
     asset = get_asset(**config)
-
+    failure = 1
     res_codes = []
     for _ in range(count):
         xml, _uuid = prepare_submission(asset)
         res = submit_data(xml, _uuid, **config)
         if res == 201:
-            print(f'{_uuid}: Success')
+            success_current = len([rc == 201 for rc in res_codes])+1
+            print(f'{_uuid}: Success # {success_current}')
         else:
-            print(f'{_uuid}: Fail')
+            print(f'{_uuid}: Fail # {failure} ({res})')
+            failure = failure + 1
         res_codes.append(res)
 
     successes = len([rc == 201 for rc in res_codes])
