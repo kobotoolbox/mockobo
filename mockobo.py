@@ -6,12 +6,13 @@ import io
 import json
 import os
 import pytz
-import re
 import requests
 import sys
 import uuid
 from copy import copy
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dateutil.parser import parse as date_parse
+from math import ceil
 from random import sample, randint, choice, random, shuffle
 from xml.etree import ElementTree as ET
 
@@ -26,7 +27,7 @@ KOBO_CONF = 'kobo.json'
 faker = Faker()
 
 
-def get_config(asset_uid):
+def get_config(asset_uid=None):
     if not os.path.exists(KOBO_CONF):
         print(f'Make sure you configure {KOBO_CONF} first.')
         sys.exit(1)
@@ -37,21 +38,31 @@ def get_config(asset_uid):
     token = conf['token']
     kf_url = conf['kf_url']
     kc_url = conf['kc_url']
-    return {
-        'data_url':f'{kf_url}/api/v2/assets/{asset_uid}/data',
-        'asset_url':f'{kf_url}/api/v2/assets/{asset_uid}',
-        'submission_url':f'{kc_url}/api/v1/submissions',
-        'headers':{
+    config = {
+        'assets_url': f'{kf_url}/api/v2/assets/?limit=500',
+        'submission_url': f'{kc_url}/api/v1/submissions',
+        'headers': {
             'Authorization': f'Token {token}'
         },
-        'params':{
+        'params': {
             'format': 'json'
         },
     }
+    if asset_uid:
+        config['data_url'] = f'{kf_url}/api/v2/assets/{asset_uid}/data/'
+        config['asset_url'] = f'{kf_url}/api/v2/assets/{asset_uid}/'
+
+    return config
 
 
 def get_asset(asset_url, headers, params, *args, **kwargs):
     res = requests.get(asset_url, headers=headers, params=params)
+    if res.status_code == 200:
+        return res.json()
+
+
+def get_assets(assets_url, headers, params, *args, **kwargs):
+    res = requests.get(assets_url, headers=headers, params=params)
     if res.status_code == 200:
         return res.json()
 
@@ -67,7 +78,19 @@ def submit_data(xml, _uuid, submission_url, headers, *args, **kwargs):
     )
     session = requests.Session()
     res = session.send(res.prepare())
-    return res.status_code
+    return res.status_code, _uuid
+    # TODO handle image
+    # with open('./IMG_2236.jpg', 'rb') as media_file:
+    #     files = {'xml_submission_file': file_tuple, f'IMG_2236.jpg': media_file}
+    #     res = requests.Request(
+    #         method='POST',
+    #         url=submission_url,
+    #         files=files,
+    #         headers=headers,
+    #     )
+    #     session = requests.Session()
+    #     res = session.send(res.prepare())
+    #     return res.status_code, _uuid
 
 
 def get_uuid():
@@ -148,6 +171,7 @@ def get_submission_data(asset_content):
 
     result = {}
     for item in survey:
+        res = ''
         name = item.get('name') or item.get('$autoname')
         if name is None:
             continue
@@ -202,6 +226,10 @@ def get_submission_data(asset_content):
                 [p1] + [get_point() for _ in range(1, randint(2, 10))] + [p1]
             )
 
+        # IMAGE
+        elif data_type == 'image':
+            res = f'IMG_2236.jpg'
+
         result[name] = res
 
     return result
@@ -235,24 +263,32 @@ def main(asset_uid, count=1):
     asset = get_asset(**config)
     failure = 1
     res_codes = []
-    for _ in range(count):
-        xml, _uuid = prepare_submission(asset)
-        res = submit_data(xml, _uuid, **config)
-        if res == 201:
-            success_current = len([rc == 201 for rc in res_codes])+1
-            print(f'{_uuid}: Success # {success_current}')
-        else:
-            print(f'{_uuid}: Fail # {failure} ({res})')
-            failure = failure + 1
-        res_codes.append(res)
 
-    successes = len([rc == 201 for rc in res_codes])
-    print(
-        f'{successes} successes of {count} tries to asset: {asset_uid}.'
-    )
+    processes = []
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        for _ in range(count):
+            xml, _uuid = prepare_submission(asset)
+            print('_uuid', _uuid)
+            processes.append(executor.submit(submit_data, xml, _uuid, **config))
+
+        for submission in as_completed(processes):
+            res, _uuid = submission.result()
+            if res == 201:
+                success_current = len([rc == 201 for rc in res_codes]) + 1
+                print(f'{_uuid}: Success # {success_current}')
+            else:
+                print(f'{_uuid}: Fail # {failure} ({res})')
+                failure = failure + 1
+            res_codes.append(res)
+
+        successes = len([rc == 201 for rc in res_codes])
+        print(
+            f'{successes} successes of {count} tries to asset: {asset_uid}.'
+        )
 
 
 if __name__ == '__main__':
+    import time
     parser = argparse.ArgumentParser(
         description='A CLI tool to submit random data to KoBo'
     )
@@ -265,6 +301,14 @@ if __name__ == '__main__':
         help='Number of submissions to generate',
     )
     args = parser.parse_args()
-
-    main(asset_uid=args.asset_uid, count=args.count)
-
+    t0 = time.time()
+    if not args.asset_uid:
+        config = get_config()
+        assets = get_assets(**config)['results']
+        submission_count_per_asset = ceil(len(assets) / args.count)
+        for asset in assets:
+            main(asset_uid=asset['uid'], count=submission_count_per_asset)
+    else:
+        main(asset_uid=args.asset_uid, count=args.count)
+    t1 = time.time()
+    print('Time:', t1 - t0)
