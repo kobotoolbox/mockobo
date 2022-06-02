@@ -160,6 +160,7 @@ def get_submission_data(asset_content):
         if data_type in ['select_one', 'select_multiple']:
             choices = survey_choices[item['select_from_list_name']]
 
+        res = ''
         # SELECT QUESTIONS
         if data_type == 'select_multiple':
             res = ' '.join(sample(choices, randint(0, len(choices))))
