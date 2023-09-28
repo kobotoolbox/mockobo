@@ -8,6 +8,7 @@ import os
 import pytz
 import requests
 import sys
+import time
 import uuid
 from copy import copy
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -20,9 +21,7 @@ import lorem
 from dicttoxml import dicttoxml
 from faker import Faker
 
-
 KOBO_CONF = 'kobo.json'
-
 
 faker = Faker()
 
@@ -39,7 +38,7 @@ def get_config(asset_uid=None):
     kf_url = conf['kf_url']
     kc_url = conf['kc_url']
     config = {
-        'assets_url': f'{kf_url}/api/v2/assets/?limit=500',
+        'assets_url': f'{kf_url}/api/v2/assets/?limit=500&q=date_deployed__isnull:False',
         'submission_url': f'{kc_url}/api/v1/submissions',
         'headers': {
             'Authorization': f'Token {token}'
@@ -126,9 +125,10 @@ def format_openrosa_datetime(dt=None):
 def get_point():
     def _get_item(s=0, e=1, r=6):
         return round(randint(s, e) * random(), r)
+
     lat = _get_item(-90, 90)
     lon = _get_item(-180, 180)
-    return f'{lat} {lon} {_get_item(0,10, 1)} {_get_item(0,10, 1)}'
+    return f'{lat} {lon} {_get_item(0, 10, 1)} {_get_item(0, 10, 1)}'
 
 
 def get_random_datetime(_type='datetime'):
@@ -144,16 +144,16 @@ def get_random_datetime(_type='datetime'):
 
 def get_asset_details(asset):
     return {
-        'asset_uid':asset['uid'],
-        'version':get_version_string(asset['deployed_versions']),
+        'asset_uid': asset['uid'],
+        'version': get_version_string(asset['deployed_versions']),
     }
 
 
 def get_submission_misc(_uuid, deployment_data):
     return {
-        'formhub':{'uuid':_uuid},
-        '__version__':get_version_id(deployment_data),
-        'meta':{'instanceID':get_instance_id(_uuid)}
+        'formhub': {'uuid': _uuid},
+        '__version__': get_version_id(deployment_data),
+        'meta': {'instanceID': get_instance_id(_uuid)}
     }
 
 
@@ -213,7 +213,7 @@ def get_submission_data(asset_content):
         elif data_type in ['integer', 'range']:
             res = randint(0, 99999)
         elif data_type == 'decimal':
-            res = round(random() * randint(0, 99999), randint(1,10))
+            res = round(random() * randint(0, 99999), randint(1, 10))
 
         # GEO QUESTIONS
         elif data_type == 'geopoint':
@@ -288,7 +288,6 @@ def main(asset_uid, count=1):
 
 
 if __name__ == '__main__':
-    import time
     parser = argparse.ArgumentParser(
         description='A CLI tool to submit random data to KoBo'
     )
