@@ -160,7 +160,7 @@ def get_submission_misc(_uuid, deployment_data):
     }
 
 
-def get_submission_data(asset_content ,media_file: Optional[str] = None):
+def get_submission_data(asset_content, media_file: Optional[str] = None):
     survey = asset_content['survey']
     asset_choices = asset_content.get('choices', [])
     survey_choices = {}
@@ -267,7 +267,7 @@ def prepare_submission(asset, media_file: Optional[str] = None):
     return ET.tostring(xml), _uuid
 
 
-def main(asset_uid, count=1, media_file: Optional[str] = None):
+def main(asset_uid, count=1, media_file: Optional[str] = None, max_workers: int = 2):
     config = get_config(asset_uid=asset_uid)
     if media_file:
         config['media_file'] = media_file
@@ -277,7 +277,7 @@ def main(asset_uid, count=1, media_file: Optional[str] = None):
     res_codes = []
 
     processes = []
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         for _ in range(count):
             xml, _uuid = prepare_submission(asset, media_file)
             processes.append(executor.submit(submit_data, xml, _uuid, **config))
@@ -317,6 +317,13 @@ if __name__ == '__main__':
         default=None,
         help='Specify media file to upload. Format type:path',
     )
+    parser.add_argument(
+        '--max-workers',
+        '-w',
+        type=int,
+        default=2,
+        help='Number of threads to use. Default: 2',
+    )
     args = parser.parse_args()
 
     if not args.asset_uid:
@@ -328,10 +335,12 @@ if __name__ == '__main__':
                 asset_uid=asset_['uid'],
                 count=submission_count_per_asset,
                 media_file=args.media_file,
+                max_workers=args.max_workers,
             )
     else:
         main(
             asset_uid=args.asset_uid,
             count=args.count,
             media_file=args.media_file,
+            max_workers=args.max_workers,
         )

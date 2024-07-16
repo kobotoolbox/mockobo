@@ -50,3 +50,16 @@ The format is `type`:`/path/to/the/file`
 ./mockobo.py -a aLmmfWSAUNamKwiSTcVSix -c 42 --media-file image:/path/to/mypicture.jpg
 ./mockobo.py -a aLmmfWSAUNamKwiSTcVSix -c 42 --media-file video:/path/to/myvideo.mp4
 ```
+
+4. Use concurrency
+
+By default, `mockobo` only uses 2 threads. Increasing the value for dev environments 
+is almost useless since the Django dev server does not seem to handle it. 
+On production, the gain is noticeable, especially when you want to create a 
+large set of data.
+
+**BE AWARE** to not flood the server.
+
+```
+./mockobo.py -a aLmmfWSAUNamKwiSTcVSix -c 42 -w 10
+```
