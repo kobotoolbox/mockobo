@@ -60,6 +60,9 @@ def get_asset(asset_url, headers, params, *args, **kwargs):
     if res.status_code == 200:
         return res.json()
 
+    print(f'ERROR: Asset `{asset_url}` not found')
+    sys.exit(1)
+
 
 def get_assets(assets_url, headers, params, *args, **kwargs):
     res = requests.get(assets_url, headers=headers, params=params)
@@ -315,7 +318,7 @@ if __name__ == '__main__':
         help='Specify media file to upload. Format type:path',
     )
     args = parser.parse_args()
-    t0 = time.time()
+
     if not args.asset_uid:
         config_ = get_config()
         assets = get_assets(**config_)['results']
@@ -332,5 +335,3 @@ if __name__ == '__main__':
             count=args.count,
             media_file=args.media_file,
         )
-    t1 = time.time()
-    print('Time:', t1 - t0)
