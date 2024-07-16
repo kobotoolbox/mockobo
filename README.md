@@ -41,3 +41,12 @@ Or
 ./mockobo.py -a aLmmfWSAUNamKwiSTcVSix -c 42
 ```
 
+4. Use attachments
+
+Add a video or audio file to your project, and run `mockobo` with `--media-file` option\
+The format is `type`:`/path/to/the/file`
+
+```
+./mockobo.py -a aLmmfWSAUNamKwiSTcVSix -c 42 --media-file image:/path/to/mypicture.jpg
+./mockobo.py -a aLmmfWSAUNamKwiSTcVSix -c 42 --media-file video:/path/to/myvideo.mp4
+```

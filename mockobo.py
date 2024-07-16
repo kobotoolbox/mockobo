@@ -15,6 +15,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dateutil.parser import parse as date_parse
 from math import ceil
 from random import sample, randint, choice, random, shuffle
+from typing import Optional
 from xml.etree import ElementTree as ET
 
 import lorem
@@ -68,28 +69,27 @@ def get_assets(assets_url, headers, params, *args, **kwargs):
 
 def submit_data(xml, _uuid, submission_url, headers, *args, **kwargs):
     file_tuple = (_uuid, io.BytesIO(xml))
+    media_file = kwargs.get('media_file')
     files = {'xml_submission_file': file_tuple}
-    res = requests.Request(
-        method='POST',
-        url=submission_url,
-        files=files,
-        headers=headers,
-    )
-    session = requests.Session()
-    res = session.send(res.prepare())
-    return res.status_code, _uuid
-    # TODO handle image
-    # with open('./IMG_2236.jpg', 'rb') as media_file:
-    #     files = {'xml_submission_file': file_tuple, f'IMG_2236.jpg': media_file}
-    #     res = requests.Request(
-    #         method='POST',
-    #         url=submission_url,
-    #         files=files,
-    #         headers=headers,
-    #     )
-    #     session = requests.Session()
-    #     res = session.send(res.prepare())
-    #     return res.status_code, _uuid
+
+    def _post():
+        res = requests.Request(
+            method='POST',
+            url=submission_url,
+            files=files,
+            headers=headers,
+        )
+        session = requests.Session()
+        res = session.send(res.prepare())
+        return res.status_code, _uuid
+
+    if media_file:
+        _, media_file_path = media_file.split(':')
+        with open(media_file_path, 'rb') as f:
+            files[os.path.basename(media_file_path)] = f
+            return _post()
+
+    return _post()
 
 
 def get_uuid():
@@ -157,10 +157,16 @@ def get_submission_misc(_uuid, deployment_data):
     }
 
 
-def get_submission_data(asset_content):
+def get_submission_data(asset_content ,media_file: Optional[str] = None):
     survey = asset_content['survey']
     asset_choices = asset_content.get('choices', [])
     survey_choices = {}
+    media_file_type = media_file_basename = None
+
+    if media_file:
+        media_file_type, media_file_path = media_file.split(':')
+        media_file_basename = os.path.basename(media_file_path)
+
     for item in asset_choices:
         ln = item['list_name']
         n = item['name']
@@ -227,26 +233,26 @@ def get_submission_data(asset_content):
             )
 
         # IMAGE
-        elif data_type == 'image':
-            res = f'IMG_2236.jpg'
+        elif media_file_type and data_type == media_file_type:
+            res = media_file_basename
 
         result[name] = res
 
     return result
 
 
-def get_submission(_uuid, asset):
+def get_submission(_uuid, asset, media_file: Optional[str] = None):
     return {
         **get_submission_misc(_uuid, asset['deployed_versions']),
-        **get_submission_data(asset['content'])
+        **get_submission_data(asset['content'], media_file)
     }
 
 
-def prepare_submission(asset):
+def prepare_submission(asset, media_file: Optional[str] = None):
     _uuid = get_uuid()
 
     asset_details = get_asset_details(asset)
-    data = get_submission(_uuid, asset)
+    data = get_submission(_uuid, asset, media_file)
 
     xml = ET.fromstring(dicttoxml(data, attr_type=False))
     xml.tag = asset_details['asset_uid']
@@ -258,8 +264,11 @@ def prepare_submission(asset):
     return ET.tostring(xml), _uuid
 
 
-def main(asset_uid, count=1):
+def main(asset_uid, count=1, media_file: Optional[str] = None):
     config = get_config(asset_uid=asset_uid)
+    if media_file:
+        config['media_file'] = media_file
+
     asset = get_asset(**config)
     failure = 1
     res_codes = []
@@ -267,8 +276,7 @@ def main(asset_uid, count=1):
     processes = []
     with ThreadPoolExecutor(max_workers=2) as executor:
         for _ in range(count):
-            xml, _uuid = prepare_submission(asset)
-            print('_uuid', _uuid)
+            xml, _uuid = prepare_submission(asset, media_file)
             processes.append(executor.submit(submit_data, xml, _uuid, **config))
 
         for submission in as_completed(processes):
@@ -299,15 +307,30 @@ if __name__ == '__main__':
         default=1,
         help='Number of submissions to generate',
     )
+    parser.add_argument(
+        '--media-file',
+        '-mf',
+        type=str,
+        default=None,
+        help='Specify media file to upload. Format type:path',
+    )
     args = parser.parse_args()
     t0 = time.time()
     if not args.asset_uid:
-        config = get_config()
-        assets = get_assets(**config)['results']
+        config_ = get_config()
+        assets = get_assets(**config_)['results']
         submission_count_per_asset = ceil(len(assets) / args.count)
-        for asset in assets:
-            main(asset_uid=asset['uid'], count=submission_count_per_asset)
+        for asset_ in assets:
+            main(
+                asset_uid=asset_['uid'],
+                count=submission_count_per_asset,
+                media_file=args.media_file,
+            )
     else:
-        main(asset_uid=args.asset_uid, count=args.count)
+        main(
+            asset_uid=args.asset_uid,
+            count=args.count,
+            media_file=args.media_file,
+        )
     t1 = time.time()
     print('Time:', t1 - t0)

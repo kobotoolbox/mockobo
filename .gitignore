@@ -130,6 +130,8 @@ dmypy.json
 
 # Local
 kobo.json
+kobo.*
 
 # PyCharm
 .idea
+
